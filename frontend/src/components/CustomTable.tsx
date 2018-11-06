@@ -71,7 +71,7 @@ export const css = stylesheet({
     whiteSpace: 'nowrap',
   },
   columnName: {
-    fontSize: fontsize.medium,
+    fontSize: 13,
     fontWeight: 'bold',
   },
   emptyMessage: {
