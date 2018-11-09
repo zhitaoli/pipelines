@@ -20,7 +20,7 @@ __all__ = [
 
 from ._yaml_utils import dump_yaml
 from ._components import _create_task_factory_from_component_spec
-from ._structures import InputSpec, OutputSpec, ImplementationSpec, DockerContainerSpec, ComponentSpec
+from ._structures import InputSpec, OutputSpec, InputOrOutputSpec, ImplementationSpec, DockerContainerSpec, ComponentSpec
 
 from pathlib import Path
 from typing import TypeVar, Generic
@@ -83,6 +83,9 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image)
             #We need two kind of strings: we can use any type name for component YAML, but for generated Python code we must use valid python type annotations.
             return ('value', "'" + str(annotation) + "'") 
 
+    input_name_to_command_line_flag = {}
+    output_name_to_command_line_flag = {}
+
     for parameter in parameters:
         annotation = parameter.annotation
         
@@ -91,24 +94,32 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image)
         parameter_to_type_name[parameter.name] = parameter_type_name
 
         #TODO: Humanize the input/output names
-        arguments.append({argument_kind: parameter.name})
 
-        parameter_spec = OrderedDict([('name', parameter.name)])
-        if parameter_type_name:
-            parameter_spec['type'] = parameter_type_name
         if argument_kind == 'value' or argument_kind == 'file':
+            parameter_spec = InputSpec(name=parameter.name)
             inputs.append(parameter_spec)
+            command_line_flag = '--' + parameter.name.lower().replace('_', '-')
+            input_name_to_command_line_flag[parameter.name] = command_line_flag
+            arguments.append(command_line_flag)
+            arguments.append({argument_kind: parameter.name})
         elif argument_kind == 'output':
+            parameter_spec = OutputSpec(name=parameter.name)
             outputs.append(parameter_spec)
+            command_line_flag = '--' + parameter.name.lower().replace('_', '-')
+            output_name_to_command_line_flag[parameter.name] = command_line_flag
+            arguments.append(command_line_flag)
+            arguments.append({'output': parameter.name})
         else:
             #Cannot happen
             raise ValueError('Unrecognized argument kind {}.'.format(argument_kind))
+        if parameter_type_name:
+            parameter_spec.type = parameter_type_name
 
     #Analyzing the return type annotations.
     return_ann = signature.return_annotation
     if hasattr(return_ann, '_fields'): #NamedTuple
         for field_name in return_ann._fields:
-            output_spec = OrderedDict([('name', field_name)])
+            output_spec = OutputSpec(name=field_name)
             if hasattr(return_ann, '_field_types'):
                 output_type = return_ann._field_types.get(field_name, None)
                 if isinstance(output_type, type):
@@ -117,17 +128,31 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image)
                     output_type_name = str(output_type)
                 
                 if output_type:
-                    output_spec['type'] = output_type_name
+                    output_spec.type = output_type_name
             outputs.append(output_spec)
             extra_output_names.append(field_name)
-            arguments.append({'output': field_name})
+            command_line_flag = '--output_' + field_name.lower().replace('_', '-')
+            #Quick and dirty uniqueness
+            existing_flags = set(list(input_name_to_command_line_flag.values()) + list(output_name_to_command_line_flag.values()))
+            while command_line_flag in existing_flags:
+                command_line_flag = '-' + command_line_flag
+            output_name_to_command_line_flag[field_name] = command_line_flag
+            arguments.append(command_line_flag)
+            arguments.append({'output':field_name})
     else:
-        output_spec = OrderedDict([('name', single_output_name_const)])
+        output_spec = OutputSpec(name=single_output_name_const)
         (_, output_type_name) = annotation_to_argument_kind_and_type_name(signature.return_annotation)
         if output_type_name:
-            output_spec['type'] = output_type_name
+            output_spec.type = output_type_name
         outputs.append(output_spec)
         extra_output_names.append(single_output_pythonic_name_const)
+        command_line_flag = '--' + single_output_name_const.lower()
+        #Quick and dirty uniqueness
+        existing_flags = set(list(input_name_to_command_line_flag.values()) + list(output_name_to_command_line_flag.values()))
+        while command_line_flag in existing_flags:
+            command_line_flag = '-' + command_line_flag
+        output_name_to_command_line_flag[single_output_name_const] = command_line_flag
+        arguments.append(command_line_flag)
         arguments.append({'output': single_output_name_const})
 
     func_name=func.__name__
@@ -147,19 +172,15 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image)
 
     extra_output_external_names = [name + '_file' for name in extra_output_names]
 
-    input_args_parsing_code_lines =(
-        "    '{arg_name}': {arg_type}(sys.argv[{arg_idx}]),".format(
-            arg_name=name_type[0],
-            arg_type=name_type[1] if name_type[1] in ['int', 'float', 'bool'] else 'str',
-            arg_idx=idx + 1
+    flag_to_arg_map_parts = (
+        "'{flag}': ('{arg}', {typ})".format(
+            flag=input_name_to_command_line_flag[name],
+            arg=name,
+            typ=typ if typ in ['int', 'float', 'bool'] else 'str',
         )
-        for idx, name_type in enumerate(parameter_to_type_name.items())
+        for name, typ in parameter_to_type_name.items()
     )
-
-    output_files_parsing_code_lines = (
-        '    sys.argv[{}],'.format(idx + len(parameter_to_type_name) + 1)
-        for idx in range(len(extra_output_external_names))
-    )
+    output_flags_list = ["'" + output_name_to_command_line_flag[output.name] + "'" for output in outputs]
 
     full_source = \
 '''\
@@ -170,12 +191,10 @@ from typing import NamedTuple
 {func_code}
 
 import sys
-_args = {{
-{input_args_parsing_code}
-}}
-_output_files = [
-{output_files_parsing_code}
-]
+_argv_dict = {{sys.argv[i]: sys.argv[i + 1] for i in range(1, len(sys.argv), 2)}}
+_flag_to_arg = {{{flag_to_arg_map}}}
+_args = {{_flag_to_arg[flag][0]: _flag_to_arg[flag][1](value) for flag, value in _argv_dict.items() if flag in _flag_to_arg}}
+_output_files = [_argv_dict[flag] for flag in [{output_flags_list}]]
 
 _outputs = {func_name}(**_args)
 
@@ -192,21 +211,22 @@ for idx, filename in enumerate(_output_files):
         func_name=func_name,
         func_code=func_code,
         extra_code=extra_code,
-        input_args_parsing_code='\n'.join(input_args_parsing_code_lines),
-        output_files_parsing_code='\n'.join(output_files_parsing_code_lines),
+        flag_to_arg_map=', '.join(flag_to_arg_map_parts),
+        output_flags_list=', '.join(output_flags_list),
     )
 
     #Removing consecutive blank lines
     full_source = re.sub('\n\n\n+', '\n\n', full_source).strip('\n') + '\n'
 
     component_name = _python_function_name_to_component_name(func_name)
-    description = func.__doc__.strip() + '\n' if func.__doc__ else None #Interesting: unlike ruamel.yaml, PyYaml cannot handle trailing spaces in the last line (' \n') and switches the style to double-quoted.
+    #description = func.__doc__.strip() + '\n' if func.__doc__ else None #Interesting: unlike ruamel.yaml, PyYaml cannot handle trailing spaces in the last line (' \n') and switches the style to double-quoted.
+    description = func.__doc__.strip() if func.__doc__ else None
 
     component_spec = ComponentSpec(
         name=component_name,
         description=description,
-        inputs=[InputSpec.from_struct(input) for input in inputs],
-        outputs=[OutputSpec.from_struct(output) for output in outputs],
+        inputs=inputs,
+        outputs=outputs,
         implementation=ImplementationSpec(
             docker_container=DockerContainerSpec(
                 image=base_image,
