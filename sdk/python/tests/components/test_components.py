@@ -293,7 +293,7 @@ implementation:
     def test_command_if_then(self):
         component_text = '''\
 inputs:
-- {name: In, required: false}
+- {name: In, optional: true}
 implementation:
   dockerContainer:
     image: busybox
@@ -315,7 +315,7 @@ implementation:
     def test_command_if_then_else(self):
         component_text = '''\
 inputs:
-- {name: In, required: false}
+- {name: In, optional: true}
 implementation:
   dockerContainer:
     image: busybox
