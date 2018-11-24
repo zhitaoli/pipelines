@@ -27,6 +27,7 @@ CODEGEN_PKG=${SCRIPT_ROOT}/../../../../../../k8s.io/code-generator
 echo "CODEGEN_PKG is $CODEGEN_PKG"
 
 ${CODEGEN_PKG}/generate-groups.sh "deepcopy,client,informer,lister" \
-  github.com/kubeflow/pipelines/backend/src/crd/pkg/client github.com/kubeflow/pipelines/backend/src/crd/pkg/apis \
-  scheduledworkflow:v1alpha1 \
+  github.com/kubeflow/pipelines/backend/src/crd/pkg/client \
+  github.com/kubeflow/pipelines/backend/src/crd/pkg/apis \
+  "scheduledworkflow:v1alpha1 tensorboard:v1alpha1" \
   --go-header-file ${SCRIPT_ROOT}/hack/custom-boilerplate.go.txt

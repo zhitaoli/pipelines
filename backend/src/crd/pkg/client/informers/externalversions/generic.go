@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	v1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	tensorboardv1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/tensorboard/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -52,6 +53,10 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=scheduledworkflow.kubeflow.org, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("scheduledworkflows"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Scheduledworkflow().V1alpha1().ScheduledWorkflows().Informer()}, nil
+
+		// Group=tensorboard.kubeflow.org, Version=v1alpha1
+	case tensorboardv1alpha1.SchemeGroupVersion.WithResource("tensorboards"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Tensorboard().V1alpha1().Tensorboards().Informer()}, nil
 
 	}
 
