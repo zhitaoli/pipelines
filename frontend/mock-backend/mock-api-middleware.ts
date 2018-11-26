@@ -46,7 +46,7 @@ export default (app: express.Application) => {
 
   app.use((req, _, next) => {
     // tslint:disable-next-line:no-console
-    console.info(req.method + ' ' + req.originalUrl);
+    console.info(Date.now() + ' - ' + req.method + ' ' + req.originalUrl);
     next();
   });
 

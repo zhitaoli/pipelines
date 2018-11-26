@@ -180,11 +180,16 @@ class RunList extends React.Component<RunListProps, RunListState> {
     let displayRuns: DisplayRun[] = [];
     let nextPageToken = '';
 
+    // tslint:disable-next-line:no-console
+    console.time('list runs total');
     if (Array.isArray(this.props.runIdListMask)) {
       displayRuns = this.props.runIdListMask.map(id => ({ metadata: { id } }));
     } else {
       // Load all runs
       try {
+        // tslint:disable-next-line:no-console
+        console.time('list runs');
+        logger.verbose(Date.now() + ' - listing runs');
         const response = await Apis.runServiceApi.listRuns(
           request.pageToken,
           request.pageSize,
@@ -192,6 +197,9 @@ class RunList extends React.Component<RunListProps, RunListState> {
           this.props.experimentIdMask ? ApiResourceType.EXPERIMENT.toString() : undefined,
           this.props.experimentIdMask,
         );
+        logger.verbose(Date.now() + ' - listing runs done!');
+        // tslint:disable-next-line:no-console
+        console.timeEnd('list runs');
 
         displayRuns = (response.runs || []).map(r => ({ metadata: r }));
         nextPageToken = response.next_page_token || '';
@@ -203,14 +211,30 @@ class RunList extends React.Component<RunListProps, RunListState> {
       }
     }
 
+    // tslint:disable-next-line:no-console
+    console.time('metadata and workflows');
     await this._getAndSetMetadataAndWorkflows(displayRuns);
+    // tslint:disable-next-line:no-console
+    console.timeEnd('metadata and workflows');
+
+    // tslint:disable-next-line:no-console
+    console.time('get pipelines');
     await this._getAndSetPipelineNames(displayRuns);
+    // tslint:disable-next-line:no-console
+    console.timeEnd('get pipelines');
+
+    // tslint:disable-next-line:no-console
+    console.time('get experiments');
     await this._getAndSetExperimentNames(displayRuns);
+    // tslint:disable-next-line:no-console
+    console.timeEnd('get experiments');
 
     this.setState({
       metrics: RunUtils.extractMetricMetadata(displayRuns.map(r => r.metadata)),
       runs: displayRuns,
     });
+    // tslint:disable-next-line:no-console
+    console.timeEnd('list runs total');
     return nextPageToken;
   }
 

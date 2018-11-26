@@ -42,7 +42,7 @@ const minioClient = new MinioClient({
 const app = express() as Application;
 
 app.use(function (req, _, next) {
-  console.info(req.method + ' ' + req.originalUrl);
+  console.info(Date.now() + ' - ' + req.method + ' ' + req.originalUrl);
   next();
 });
 
@@ -262,7 +262,7 @@ app.all('/' + v1beta1Prefix + '/*', proxy({
   target: apiServerAddress,
 }));
 
-app.all(BASEPATH  + '/' + v1beta1Prefix + '/*', proxy({
+app.all(BASEPATH + '/' + v1beta1Prefix + '/*', proxy({
   changeOrigin: true,
   onProxyReq: proxyReq => {
     console.log('Proxied request: ', (proxyReq as any).path);
