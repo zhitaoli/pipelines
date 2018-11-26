@@ -19,6 +19,8 @@ import (
 	clientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
 	scheduledworkflowv1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
 	fakescheduledworkflowv1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1/fake"
+	tensorboardv1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/tensorboard/v1alpha1"
+	faketensorboardv1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/tensorboard/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -76,4 +78,14 @@ func (c *Clientset) ScheduledworkflowV1alpha1() scheduledworkflowv1alpha1.Schedu
 // Scheduledworkflow retrieves the ScheduledworkflowV1alpha1Client
 func (c *Clientset) Scheduledworkflow() scheduledworkflowv1alpha1.ScheduledworkflowV1alpha1Interface {
 	return &fakescheduledworkflowv1alpha1.FakeScheduledworkflowV1alpha1{Fake: &c.Fake}
+}
+
+// TensorboardV1alpha1 retrieves the TensorboardV1alpha1Client
+func (c *Clientset) TensorboardV1alpha1() tensorboardv1alpha1.TensorboardV1alpha1Interface {
+	return &faketensorboardv1alpha1.FakeTensorboardV1alpha1{Fake: &c.Fake}
+}
+
+// Tensorboard retrieves the TensorboardV1alpha1Client
+func (c *Clientset) Tensorboard() tensorboardv1alpha1.TensorboardV1alpha1Interface {
+	return &faketensorboardv1alpha1.FakeTensorboardV1alpha1{Fake: &c.Fake}
 }

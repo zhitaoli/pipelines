@@ -17,6 +17,7 @@ package scheme
 
 import (
 	scheduledworkflowv1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	tensorboardv1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/tensorboard/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -48,4 +49,5 @@ func init() {
 // correctly.
 func AddToScheme(scheme *runtime.Scheme) {
 	scheduledworkflowv1alpha1.AddToScheme(scheme)
+	tensorboardv1alpha1.AddToScheme(scheme)
 }
