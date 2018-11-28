@@ -28,7 +28,7 @@ import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
 import { RoutePage } from '../components/Router';
 import { RouterProps } from 'react-router';
 import { classes, stylesheet } from 'typestyle';
-import { fontsize, dimension, commonCss } from '../Css';
+import { fontsize, dimension, commonCss, padding } from '../Css';
 
 export const sideNavColors = {
   bg: '#0f4471',
@@ -64,7 +64,8 @@ export const css = stylesheet({
   },
   chevron: {
     color: sideNavColors.fgDefault,
-    marginLeft: 16,
+    justifyContent: 'flex-start',
+    margin: 'auto auto auto 16px',
     padding: 6,
     transition: 'transform 0.3s',
   },
@@ -107,8 +108,22 @@ export const css = stylesheet({
     justifyContent: 'center',
     marginLeft: 12,
   },
+  privacyText: {
+    $nest: {
+      '&:hover': {
+        opacity: 1,
+      },
+    },
+    color: '#fff',
+    fontFamily: 'roboto-regular',
+    fontSize: 12,
+    margin: 5,
+    opacity: 0.5,
+  },
   root: {
     background: sideNavColors.bg,
+    display: 'flex',
+    flexFlow: 'column',
     paddingTop: 12,
     transition: 'width 0.3s',
     width: 220,
@@ -205,7 +220,20 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
           onClick={this._toggleNavClicked.bind(this)}>
           <ChevronLeftIcon />
         </IconButton>
-      </div >
+
+        <div className={commonCss.flexGrow} />
+
+        {!collapsed && (
+          <div className={padding(20)}>
+            <a className={classes(css.privacyText, commonCss.unstyled)} target='_blank'
+              href={'https://github.com/kubernetes-incubator/spartakus/blob/' +
+                '6e8553c0a6ce574f89fcfdcb0edc64afc3da538a/README.md#what-is-in-a-report'}>Privacy</a>
+            <span className={css.privacyText} style={{ fontSize: 9 }}>&#9679;</span>
+            <a className={classes(css.privacyText, commonCss.unstyled)} target='_blank'
+              href='https://github.com/kubeflow/pipelines/'>View on Github</a>
+          </div >
+        )}
+      </div>
     );
   }
 
