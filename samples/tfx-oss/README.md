@@ -20,9 +20,7 @@ then activate the environment.
 
 Install TensorFlow, TFX and Kubeflow Pipelines SDK
 ```
-pip install tensorflow --upgrade
-pip install https://storage.googleapis.com/ml-pipeline/tfx/tfx-0.12.0rc0-py2.py3-none-any.whl 
-pip install https://storage.googleapis.com/ml-pipeline/release/0.1.10/kfp.tar.gz --upgrade
+pip install tensorflow tfx==0.13.0 kfp --upgrade
 ```
 
 Clone TFX github repo
@@ -32,7 +30,7 @@ git clone https://github.com/tensorflow/tfx
 
 Upload the utility code to your storage bucket. You can modify this code if needed for a different dataset.
 ```
-gsutil cp tfx/tfx/examples/chicago_taxi_pipeline/taxi_utils.py gs://my-bucket/<path>/
+gsutil cp tfx/tfx/examples/chicago_taxi_pipeline/taxi_utils.py gs://<my-bucket>/<path>/
 ```
 
 If gsutil does not work, try `tensorflow.gfile`:
